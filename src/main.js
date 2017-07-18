@@ -5,8 +5,6 @@ import filesize from 'filesize';
 import moment from 'moment';
 
 function init() {
-
-        const bucket = "builds.etcdevteam.com";
         // Whitelist prefixes (projects), to exclude any other possibly
         // sensitive data or irrelevant site data.
         const whitelistPrefixes = [
@@ -53,21 +51,17 @@ function init() {
         }
 
         function getBaseEndpoint(project) {
-                console.log("getting recursive files for project", project);
                 if (project.files.length > 0) {
                         return renderProjectFiles();
                 }
                 let allfiles = [];
                 function getArbitraryEndpoints(prefixes) {
-                        console.log("getting arby prefixes", prefixes);
                         let defer = $.Deferred();
                         let defers = [];
                         for (var i = 0; i < prefixes.length; i++) {
                                 defers.push($.ajax(setProjectEndpoint(prefixes[i])));
                         }
-                        console.log("defers", defers);
                         $.when(...defers).done(function(...resArray) {
-                                console.log("all whens done", resArray);
                                 defer.resolve(resArray);
                         }).fail(function(errs) {
                                 console.log(errs);
@@ -86,7 +80,7 @@ function init() {
                                 // 0: {kind: "storage#objects", prefixes: Array(1)}1: "success"2: {readyState: 4, getResponseHeader: ƒ, getAllResponseHeaders: ƒ, setRequestHeader: ƒ, overrideMimeType: ƒ, …}length: 3__proto__: Array(0)
                                 let res = resArr[j];
                                 if (res[1] !== "success") {
-                                        console.log(res[1]);
+                                        console.log(res);
                                         return;
                                 }
                                 let response = res[0];
@@ -101,7 +95,6 @@ function init() {
                                 }
 
                                 if (typeof response.prefixes !== "undefined" && response.prefixes.length > 0) {
-                                        console.log("got some more prefixes", response.prefixes);
                                         let prefixes = response.prefixes.filter((prefix) => {
                                                 let basename = prefix.split("/")[0];
                                                 let pos = whitelistPrefixes.indexOf(basename);
@@ -111,10 +104,8 @@ function init() {
                                 }
                         }
                         if (moarPrefixes.length > 0) {
-                                console.log("getting more prefixes", moarPrefixes);
                                 getArbitraryEndpoints(moarPrefixes).then(gotEndpoints);
                         } else {
-                                console.log("done gotting endpoints");
                                 project.files = allfiles.sort((a, b) =>
                                         moment(b.timeCreated) - moment(a.timeCreated)
                                 );
@@ -122,7 +113,6 @@ function init() {
                         }
                 }
                 function renderProjectFiles() {
-                        console.log("project.files", project.files);
                         $("#current-project-header").html(`${project.name} <small>Latest Artifacts</small>`);
                         renderItems(project.files);
                 }
@@ -135,12 +125,14 @@ function init() {
                         });
         }
 
+        // Input listeners
         $selectEmeraldWallet.on("click", function(el) {
                 getBaseEndpoint(projects.emeraldWallet);
         });
         $selectGeth.on("click", function(el) {
                 getBaseEndpoint(projects.geth);
         });
+
         function renderItems(files) {
                 if (typeof files === "undefined") { return; }
                 $base.html("");
@@ -156,52 +148,8 @@ function init() {
                         $base.append(row)
                 });
         }
-        function renderPrefixes(prefixes) {
-                if (typeof prefixes === "undefined") { return; }
-                // Clear out breadcrumbs.
-                $breadcrumbs.html("");
-
-                prefixes.map((prefix) => {
-                        let a = `<p>${prefix}</p>`;
-                        let $a = $(a);
-                        $a.on('click', function (el) {
-                                getEndpoint(prefix);
-                        });
-                        $breadcrumbs.append($a)
-                });
-        }
-
-        // function getBaseDirsForProject(project) {
-        //         $.ajax(setProjectEndpoint(project + "/")).done(function(res) {
-        //                 console.log(response.prefixes);
-        //                 // Filter only whitelisted prefixes, eg.
-        //                 //   go-ethereum
-        //                 //   emerald-wallet
-        //                 let dirs = response.prefixes;
-        //                 return dirs;
-        //         });
-        // }
-
-        // function setBreadcrumbs(projectPath) {
-        //         var projectCrumbs = projectPath.split("/");
-        //         projectCrumbs.map((c) => {
-        //                 let s = `<a href="">${c}</a>`;
-        //         })
-        // }
 
         getBaseEndpoint(projects.emeraldWallet);
-
-        // function showLatest(projectPath) {
-        //         $.ajax(setProjectEndpoint("emerald-wallet/preview")).done(function(response) {
-        //                 console.log(response.items);
-        //                 let files = response.items.filter((item) => !item.name.endsWith('/'));
-        //                 files = files.sort((a, b) =>
-        //                         moment(b.timeCreated) - moment(a.timeCreated)
-        //                 );
-        //                 });
-        // }
-        //
-        // showLatest();
 }
 
 $(document).ready(init);

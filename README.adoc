@@ -1,0 +1,4 @@
+----
+node build --minimize --no-watch
+gsutil -m rsync -R app/ "gs://builds.etcdevteam.com"
+----

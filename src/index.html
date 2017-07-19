@@ -1,35 +1,48 @@
 <html>
+
 <head>
-    <title>Ethereum Classic Builds</title>
-    <link rel="stylesheet" href="assets/main.css">
-    <script src="assets/main.js"></script>
+        <title>Ethereum Classic Builds</title>
+        <link rel="stylesheet" href="assets/main.css">
+        <script src="assets/main.js"></script>
 </head>
+
 <body>
 
-<div class="container">
-    <div class="page-header">
-        <h1>ETC Builds</h1>
-    </div>
+        <div class="container">
+                <div class="page-header">
+                        <h1>ETC Builds</h1>
+                </div>
 
-    <div class="row">
-        <div class="col-xs-12">
-            <h1>Emerald Wallet <small>Latest artifacts</small></h1>
+                <div class="row">
+                        <div class="col-xs-12">
+                                <h3>Projects</h3>
+                        </div>
+                        <div class="col-xs-12">
+                                <button id="select-emerald-wallet" class="btn btn-success">Emerald Wallet</button>
+                                <button id="select-geth" class="btn btn-primary">Geth</button>
+                        </div>
+                </div>
+
+                <div class="row">
+                        <div class="col-xs-12">
+                                <h1 id="current-project-header">Emerald Wallet <small>Latest artifacts</small></h1>
+                        </div>
+                        <div class="col-xs-12" id="build-items">
+                                <table class="table">
+                                        <thead>
+                                                <tr>
+                                                        <td>Filesize</td>
+                                                        <td>Name</td>
+                                                        <td>Date Creation</td>
+                                                </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                </table>
+                        </div>
+                </div>
         </div>
-        <div class="col-xs-12" id="latest-wallet">
-            <table class="table">
-                <thead>
-                <tr>
-                    <td>Filesize</td>
-                    <td>Name</td>
-                    <td>Date Creation</td>
-                </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
 
 </body>
+
 </html>

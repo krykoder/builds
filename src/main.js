@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import 'bootstrap/less/bootstrap.less';
 import 'font-awesome/css/font-awesome.css';
+import './style.scss';
 import filesize from 'filesize';
 import moment from 'moment';
 

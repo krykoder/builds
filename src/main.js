@@ -4,39 +4,46 @@ import 'font-awesome/css/font-awesome.css';
 import filesize from 'filesize';
 import moment from 'moment';
 
+// Whitelist prefixes (projects), to exclude any other possibly
+// sensitive data or irrelevant site data.
+const whitelistPrefixes = [
+    "go-ethereum",
+    "emerald-wallet"
+];
+const projects = {
+    "geth": {
+        name: "Geth Classic",
+        baseEndpoint: "go-ethereum/",
+        prefixes: [],
+        files: []
+    },
+    "emeraldWallet": {
+        name: "Emerald Wallet",
+        baseEndpoint: "emerald-wallet/",
+        prefixes: [],
+        files: []
+    }
+};
+const gcpRequestSettings = {
+    "async": true,
+    "crossDomain": true,
+    "url": "https://www.googleapis.com/storage/v1/b/builds.etcdevteam.com/o",
+    "method": "GET",
+    "headers": {},
+    "data": {
+        delimiter: "/",
+        prefix: "",
+        maxResults: 100
+    }
+};
+
+function activateTab(el) {
+    $('.nav-tabs li').removeClass('active');
+    $(el).parent().addClass('active');
+}
+
 function init() {
-        // Whitelist prefixes (projects), to exclude any other possibly
-        // sensitive data or irrelevant site data.
-        const whitelistPrefixes = [
-                "go-ethereum",
-                "emerald-wallet"
-        ];
-        const projects = {
-                "geth": {
-                        name: "Geth Classic",
-                        baseEndpoint: "go-ethereum/",
-                        prefixes: [],
-                        files: []
-                },
-                "emeraldWallet": {
-                        name: "Emerald Wallet",
-                        baseEndpoint: "emerald-wallet/",
-                        prefixes: [],
-                        files: []
-                }
-        };
-        const gcpRequestSettings = {
-                "async": true,
-                "crossDomain": true,
-                "url": "https://www.googleapis.com/storage/v1/b/builds.etcdevteam.com/o",
-                "method": "GET",
-                "headers": {},
-                "data": {
-                        delimiter: "/",
-                        prefix: "",
-                        maxResults: 100
-                }
-        };
+
 
         // DOM elements
         let $base = $('#build-items table tbody');
@@ -127,9 +134,11 @@ function init() {
 
         // Input listeners
         $selectEmeraldWallet.on("click", function(el) {
+                activateTab($selectEmeraldWallet);
                 getBaseEndpoint(projects.emeraldWallet);
         });
         $selectGeth.on("click", function(el) {
+                activateTab($selectGeth);
                 getBaseEndpoint(projects.geth);
         });
 

@@ -23,6 +23,18 @@ const projects = {
         baseEndpoint: "emerald-wallet/",
         prefixes: [],
         files: []
+    },
+    "emeraldCLI": {
+        name: "Emerald CLI",
+        baseEndpoint: "emerald-cli",
+        prefixes: [],
+        files: []
+    },
+    "sputnikVMDev": {
+        name: "SputnikVM Dev",
+        baseEndpoint: "sputnikvm-dev",
+        prefixes: [],
+        files: []
     }
 };
 const gcpRequestSettings = {
@@ -49,8 +61,12 @@ function init() {
     // DOM elements
     let $base = $('#build-items table tbody');
     let $breadcrumbs = $("#project-breadcrumbs");
+
+    // Project selectors.
     let $selectEmeraldWallet = $("#select-emerald-wallet");
     let $selectGeth = $("#select-geth");
+    let $selectEmeraldCLI = $("select-emeraldcli");
+    let $selectSputnikVMDev = $("select-sputnikvmdev");
 
     function setProjectEndpoint(prefix) {
         var s = gcpRequestSettings;
@@ -135,7 +151,7 @@ function init() {
             });
     }
 
-    // Input listeners
+    // Project input listeners
     $selectEmeraldWallet.on("click", function (el) {
         activateTab($selectEmeraldWallet);
         getBaseEndpoint(projects.emeraldWallet);
@@ -144,7 +160,16 @@ function init() {
         activateTab($selectGeth);
         getBaseEndpoint(projects.geth);
     });
+    $selectEmeraldCLI.on("click", function (el) {
+        activateTab($selectEmeraldCLI);
+        getBaseEndpoint(projects.emeraldCLI);
+    });
+    $selectSputnikVMDev.on("click", function (el) {
+        activateTab($selectSputnikVMDev);
+        getBaseEndpoint(projects.sputnikVMDev);
+    });
 
+    // Shared file renderer for all projects.
     function renderItems(files) {
         if (typeof files === "undefined") {
             return;

@@ -14,25 +14,25 @@ const whitelistPrefixes = [
 const projects = {
     "geth": {
         name: "Geth Classic",
-        baseEndpoint: "go-ethereum/",
+        basePath: "go-ethereum/",
         prefixes: [],
         files: []
     },
     "emeraldWallet": {
         name: "Emerald Wallet",
-        baseEndpoint: "emerald-wallet/",
+        basePath: "emerald-wallet/",
         prefixes: [],
         files: []
     },
     "emeraldCLI": {
         name: "Emerald CLI",
-        baseEndpoint: "emerald-cli/",
+        basePath: "emerald-cli/",
         prefixes: [],
         files: []
     },
     "sputnikVMDev": {
         name: "SputnikVM Dev",
-        baseEndpoint: "sputnikvm-dev/",
+        basePath: "sputnikvm-dev/",
         prefixes: [],
         files: []
     }
@@ -72,7 +72,7 @@ function init() {
 
 
     // DOM elements
-    let $base = $('#build-items table tbody');
+    let $base = $('#build-items').find('table tbody');
     let $breadcrumbs = $("#project-breadcrumbs");
 
     // Project selectors.
@@ -81,23 +81,23 @@ function init() {
     let $selectEmeraldCLI = $("#select-emeraldcli");
     let $selectSputnikVMDev = $("#select-sputnikvmdev");
 
-    function setProjectEndpoint(prefix) {
-        var s = gcpRequestSettings;
+    function withPrefix(prefix) {
+        let s = gcpRequestSettings;
         s["data"]["prefix"] = prefix;
         return s;
     }
 
-    function getBaseEndpoint(project) {
+    function displayProject(project) {
         if (project.files.length > 0) {
             return renderProjectFiles();
         }
         let allfiles = [];
 
-        function getArbitraryEndpoints(prefixes) {
+        function getAllPrefixes(prefixes) {
             let defer = $.Deferred();
             let defers = [];
             for (var i = 0; i < prefixes.length; i++) {
-                defers.push($.ajax(setProjectEndpoint(prefixes[i])));
+                defers.push($.ajax(withPrefix(prefixes[i])));
             }
             $.when(...defers).done(function (...resArray) {
                 defer.resolve(resArray);
@@ -108,13 +108,13 @@ function init() {
             return defer.promise();
         }
 
-        function gotEndpoints(resArr) {
+        function listFiles(resArr) {
             if (resArr[0].constructor !== Array) {
                 resArr = [resArr];
             }
             //console.log("resArr", resArr);
             let moarPrefixes = [];
-            for (var j = 0; j < resArr.length; j++) {
+            for (let j = 0; j < resArr.length; j++) {
                 // 0: {kind: "storage#objects", prefixes: Array(1)}1: "success"2: {readyState: 4, getResponseHeader: ƒ, getAllResponseHeaders: ƒ, setRequestHeader: ƒ, overrideMimeType: ƒ, …}length: 3__proto__: Array(0)
                 let res = resArr[j];
                 if (res[1] !== "success") {
@@ -142,7 +142,7 @@ function init() {
                 }
             }
             if (moarPrefixes.length > 0) {
-                getArbitraryEndpoints(moarPrefixes).then(gotEndpoints);
+                getAllPrefixes(moarPrefixes).then(listFiles);
             } else {
                 project.files = allfiles.sort((a, b) =>
                     moment(b.timeCreated) - moment(a.timeCreated)
@@ -157,12 +157,12 @@ function init() {
         }
 
         // Kickoff.
-        getVersions(project.baseEndpoint)
+        getVersions(project.basePath)
             .then((versions) => {
                 console.log('versions', versions);
-                return getArbitraryEndpoints([versions.pop()]);
+                return getAllPrefixes([versions.pop()]);
             })
-            .then(gotEndpoints)
+            .then(listFiles)
             .fail(console.error);
 
     }
@@ -170,19 +170,19 @@ function init() {
     // Project input listeners
     $selectEmeraldWallet.on("click", function (el) {
         activateTab($selectEmeraldWallet);
-        getBaseEndpoint(projects.emeraldWallet);
+        displayProject(projects.emeraldWallet);
     });
     $selectGeth.on("click", function (el) {
         activateTab($selectGeth);
-        getBaseEndpoint(projects.geth);
+        displayProject(projects.geth);
     });
     $selectEmeraldCLI.on("click", function (el) {
         activateTab($selectEmeraldCLI);
-        getBaseEndpoint(projects.emeraldCLI);
+        displayProject(projects.emeraldCLI);
     });
     $selectSputnikVMDev.on("click", function (el) {
         activateTab($selectSputnikVMDev);
-        getBaseEndpoint(projects.sputnikVMDev);
+        displayProject(projects.sputnikVMDev);
     });
 
     // Shared file renderer for all projects.
@@ -204,7 +204,7 @@ function init() {
         });
     }
 
-    getBaseEndpoint(projects.emeraldWallet);
+    displayProject(projects.emeraldWallet);
 }
 
 $(document).ready(init);

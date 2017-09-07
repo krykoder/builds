@@ -26,13 +26,13 @@ const projects = {
     },
     "emeraldCLI": {
         name: "Emerald CLI",
-        baseEndpoint: "emerald-cli",
+        baseEndpoint: "emerald-cli/",
         prefixes: [],
         files: []
     },
     "sputnikVMDev": {
         name: "SputnikVM Dev",
-        baseEndpoint: "sputnikvm-dev",
+        baseEndpoint: "sputnikvm-dev/",
         prefixes: [],
         files: []
     }
@@ -55,6 +55,19 @@ function activateTab(el) {
     $(el).parent().addClass('active');
 }
 
+function getVersions(basePath) {
+    let req = Object.assign({}, gcpRequestSettings);
+    req["data"]["prefix"] = basePath;
+    let defer = $.Deferred();
+    $.ajax(req)
+        .then((resp) => {
+            console.log('v1', resp);
+            return defer.resolve(resp.prefixes)
+        })
+        .fail(defer.reject);
+    return defer.promise();
+}
+
 function init() {
 
 
@@ -65,8 +78,8 @@ function init() {
     // Project selectors.
     let $selectEmeraldWallet = $("#select-emerald-wallet");
     let $selectGeth = $("#select-geth");
-    let $selectEmeraldCLI = $("select-emeraldcli");
-    let $selectSputnikVMDev = $("select-sputnikvmdev");
+    let $selectEmeraldCLI = $("#select-emeraldcli");
+    let $selectSputnikVMDev = $("#select-sputnikvmdev");
 
     function setProjectEndpoint(prefix) {
         var s = gcpRequestSettings;
@@ -89,7 +102,7 @@ function init() {
             $.when(...defers).done(function (...resArray) {
                 defer.resolve(resArray);
             }).fail(function (errs) {
-                console.log(errs);
+                console.error(errs);
                 defer.reject(errs);
             });
             return defer.promise();
@@ -99,17 +112,17 @@ function init() {
             if (resArr[0].constructor !== Array) {
                 resArr = [resArr];
             }
-            console.log("resArr", resArr);
+            //console.log("resArr", resArr);
             let moarPrefixes = [];
             for (var j = 0; j < resArr.length; j++) {
                 // 0: {kind: "storage#objects", prefixes: Array(1)}1: "success"2: {readyState: 4, getResponseHeader: ƒ, getAllResponseHeaders: ƒ, setRequestHeader: ƒ, overrideMimeType: ƒ, …}length: 3__proto__: Array(0)
                 let res = resArr[j];
                 if (res[1] !== "success") {
-                    console.log(res);
+                    //console.log(res);
                     return;
                 }
                 let response = res[0];
-                console.log("prefixes", response.prefixes, "items", response.items);
+                //console.log("prefixes", response.prefixes, "items", response.items);
                 if (typeof response.items !== "undefined") {
                     let files = response.items.filter((item) => {
                         let isNested = item.name.split("/").length >= 2;
@@ -144,11 +157,14 @@ function init() {
         }
 
         // Kickoff.
-        getArbitraryEndpoints([project.baseEndpoint])
+        getVersions(project.baseEndpoint)
+            .then((versions) => {
+                console.log('versions', versions);
+                return getArbitraryEndpoints([versions.pop()]);
+            })
             .then(gotEndpoints)
-            .fail(function (e) {
-                console.log(e);
-            });
+            .fail(console.error);
+
     }
 
     // Project input listeners

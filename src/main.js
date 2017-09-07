@@ -50,14 +50,20 @@ const gcpRequestSettings = {
     }
 };
 
+function withPrefix(prefix) {
+    let req = Object.assign({}, gcpRequestSettings);
+    req["data"]["prefix"] = prefix;
+    return req;
+}
+
+
 function activateTab(el) {
     $('.nav-tabs li').removeClass('active');
     $(el).parent().addClass('active');
 }
 
 function getVersions(basePath) {
-    let req = Object.assign({}, gcpRequestSettings);
-    req["data"]["prefix"] = basePath;
+    let req = withPrefix(basePath);
     let defer = $.Deferred();
     $.ajax(req)
         .then((resp) => {
@@ -68,104 +74,91 @@ function getVersions(basePath) {
     return defer.promise();
 }
 
-function init() {
+function getFiles(prefix) {
+    let req = withPrefix(prefix);
+    let defer = $.Deferred();
+    $.ajax(req)
+        .then((resp) => defer.resolve(resp.items))
+        .fail(defer.reject);
+    return defer.promise();
+}
 
+function justVersion(path) {
+    let from = path.indexOf('/');
+    return path.substring(from + 1, path.length - 1);
+}
 
-    // DOM elements
+function displayVersions(project, versions) {
+    let $base = $('#versions').find('ul');
+    $base.empty();
+    versions.forEach((v) => {
+        $base.append(`<li><a href="#">${justVersion(v)}</a></li>`)
+    });
+    $base.find('li a').click((e) => {
+        let showVersion = $(e.target).html();
+        displayProject(project, showVersion);
+        return false;
+    })
+}
+
+// Shared file renderer for all projects.
+function renderItems(files) {
+    if (typeof files === "undefined") {
+        return;
+    }
     let $base = $('#build-items').find('table tbody');
-    let $breadcrumbs = $("#project-breadcrumbs");
+    $base.empty();
+    files.map((item) => {
+        let name = item.name.substr(item.name.lastIndexOf('/') + 1);
+        let link = `/${item.name}`;
+        let nameRow = `<td><a href="${link}">${name}</a></td>`;
+        let size = filesize(item.size);
+        let sizeRow = `<td>${size}</td>`;
+        let time = moment(item.timeCreated);
+        let timeRow = `<td>${time.format('lll')}</td>`;
+        let row = `<tr>${sizeRow}${nameRow}${timeRow}</tr>`;
+        $base.append(row)
+    });
+}
 
+function renderProjectFiles(name, files) {
+    $("#current-project-header").html(`${name} <small>Latest Artifacts</small>`);
+    renderItems(files);
+}
+
+function displayProject(project, version) {
+    function showFiles(items) {
+        let files = items.sort((a, b) =>
+            moment(b.timeCreated) - moment(a.timeCreated)
+        );
+        renderProjectFiles(project.name, files);
+    }
+
+    // Kickoff.
+    getVersions(project.basePath)
+        .then((versions) => {
+            console.log('versions', versions);
+            displayVersions(project, versions);
+            let useVersion;
+            if (typeof version === 'string' && version.length > 1) {
+                useVersion = versions.find((v) => v.indexOf(version) > 0)
+            } else {
+                useVersion = versions.pop();
+            }
+            return getFiles(useVersion);
+        })
+        .then(showFiles)
+        .fail(console.error);
+
+}
+
+function init() {
+    
     // Project selectors.
     let $selectEmeraldWallet = $("#select-emerald-wallet");
     let $selectGeth = $("#select-geth");
     let $selectEmeraldCLI = $("#select-emeraldcli");
     let $selectSputnikVMDev = $("#select-sputnikvmdev");
-
-    function withPrefix(prefix) {
-        let s = gcpRequestSettings;
-        s["data"]["prefix"] = prefix;
-        return s;
-    }
-
-    function displayProject(project) {
-        if (project.files.length > 0) {
-            return renderProjectFiles();
-        }
-        let allfiles = [];
-
-        function getAllPrefixes(prefixes) {
-            let defer = $.Deferred();
-            let defers = [];
-            for (var i = 0; i < prefixes.length; i++) {
-                defers.push($.ajax(withPrefix(prefixes[i])));
-            }
-            $.when(...defers).done(function (...resArray) {
-                defer.resolve(resArray);
-            }).fail(function (errs) {
-                console.error(errs);
-                defer.reject(errs);
-            });
-            return defer.promise();
-        }
-
-        function listFiles(resArr) {
-            if (resArr[0].constructor !== Array) {
-                resArr = [resArr];
-            }
-            //console.log("resArr", resArr);
-            let moarPrefixes = [];
-            for (let j = 0; j < resArr.length; j++) {
-                // 0: {kind: "storage#objects", prefixes: Array(1)}1: "success"2: {readyState: 4, getResponseHeader: ƒ, getAllResponseHeaders: ƒ, setRequestHeader: ƒ, overrideMimeType: ƒ, …}length: 3__proto__: Array(0)
-                let res = resArr[j];
-                if (res[1] !== "success") {
-                    //console.log(res);
-                    return;
-                }
-                let response = res[0];
-                //console.log("prefixes", response.prefixes, "items", response.items);
-                if (typeof response.items !== "undefined") {
-                    let files = response.items.filter((item) => {
-                        let isNested = item.name.split("/").length >= 2;
-                        let isDir = item.name.endsWith("/");
-                        return isNested && !isDir;
-                    });
-                    allfiles = allfiles.concat(files);
-                }
-
-                if (typeof response.prefixes !== "undefined" && response.prefixes.length > 0) {
-                    let prefixes = response.prefixes.filter((prefix) => {
-                        let basename = prefix.split("/")[0];
-                        let pos = whitelistPrefixes.indexOf(basename);
-                        return pos >= 0;
-                    });
-                    moarPrefixes = prefixes;
-                }
-            }
-            if (moarPrefixes.length > 0) {
-                getAllPrefixes(moarPrefixes).then(listFiles);
-            } else {
-                project.files = allfiles.sort((a, b) =>
-                    moment(b.timeCreated) - moment(a.timeCreated)
-                );
-                renderProjectFiles();
-            }
-        }
-
-        function renderProjectFiles() {
-            $("#current-project-header").html(`${project.name} <small>Latest Artifacts</small>`);
-            renderItems(project.files);
-        }
-
-        // Kickoff.
-        getVersions(project.basePath)
-            .then((versions) => {
-                console.log('versions', versions);
-                return getAllPrefixes([versions.pop()]);
-            })
-            .then(listFiles)
-            .fail(console.error);
-
-    }
 
     // Project input listeners
     $selectEmeraldWallet.on("click", function (el) {
@@ -184,25 +177,6 @@ function init() {
         activateTab($selectSputnikVMDev);
         displayProject(projects.sputnikVMDev);
     });
-
-    // Shared file renderer for all projects.
-    function renderItems(files) {
-        if (typeof files === "undefined") {
-            return;
-        }
-        $base.html("");
-        files.map((item) => {
-            let name = item.name.substr(item.name.lastIndexOf('/') + 1);
-            let link = `/${item.name}`;
-            let nameRow = `<td><a href="${link}">${name}</a></td>`;
-            let size = filesize(item.size);
-            let sizeRow = `<td>${size}</td>`;
-            let time = moment(item.timeCreated);
-            let timeRow = `<td>${time.format('lll')}</td>`;
-            let row = `<tr>${sizeRow}${nameRow}${timeRow}</tr>`;
-            $base.append(row)
-        });
-    }
 
     displayProject(projects.emeraldWallet);
 }

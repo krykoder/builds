@@ -46,7 +46,7 @@ const gcpRequestSettings = {
     "data": {
         delimiter: "/",
         prefix: "",
-        maxResults: 100
+        maxResults: 1000
     }
 };
 
